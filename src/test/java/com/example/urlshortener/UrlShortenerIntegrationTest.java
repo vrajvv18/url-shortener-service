@@ -11,6 +11,10 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import java.io.IOException;
+import java.net.HttpURLConnection;
 
 import java.util.Map;
 
@@ -33,7 +37,24 @@ class UrlShortenerIntegrationTest {
         registry.add("app.public-url.base-url", () -> "http://localhost:8080");
     }
 
-    @Autowired TestRestTemplate rest;
+    @Autowired
+    TestRestTemplate rest;
+
+    @BeforeEach
+    void disableRedirects() {
+        rest.getRestTemplate().setRequestFactory(
+                new SimpleClientHttpRequestFactory() {
+                    @Override
+                    protected void prepareConnection(
+                            HttpURLConnection connection,
+                            String httpMethod) throws IOException {
+                        super.prepareConnection(connection, httpMethod);
+                        connection.setInstanceFollowRedirects(false);
+                    }
+                }
+        );
+    }
+
     @LocalServerPort int port;
 
     @Test
@@ -49,7 +70,9 @@ class UrlShortenerIntegrationTest {
 
         ResponseEntity<Void> redirect = rest.getForEntity("http://localhost:" + port + "/" + code, Void.class);
         assertEquals(HttpStatus.FOUND, redirect.getStatusCode());
+        assertNotNull(redirect.getHeaders().getLocation());
         assertEquals("https://example.com/products/123", redirect.getHeaders().getLocation().toString());
+
 
         ResponseEntity<Map> analytics = rest.getForEntity("http://localhost:" + port + "/api/v1/urls/" + code + "/analytics", Map.class);
         assertEquals(HttpStatus.OK, analytics.getStatusCode());
