@@ -37,8 +37,7 @@ class UrlShortenerIntegrationTest {
         registry.add("app.public-url.base-url", () -> "http://localhost:8080");
     }
 
-    @Autowired
-    TestRestTemplate rest;
+    @Autowired TestRestTemplate rest;
 
     @BeforeEach
     void disableRedirects() {
@@ -72,7 +71,6 @@ class UrlShortenerIntegrationTest {
         assertEquals(HttpStatus.FOUND, redirect.getStatusCode());
         assertNotNull(redirect.getHeaders().getLocation());
         assertEquals("https://example.com/products/123", redirect.getHeaders().getLocation().toString());
-
 
         ResponseEntity<Map> analytics = rest.getForEntity("http://localhost:" + port + "/api/v1/urls/" + code + "/analytics", Map.class);
         assertEquals(HttpStatus.OK, analytics.getStatusCode());
